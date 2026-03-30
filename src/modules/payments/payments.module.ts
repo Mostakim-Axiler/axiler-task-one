@@ -9,4 +9,4 @@ import { Payment, PaymentSchema } from '../../database/schemas/payments.schema';
     ]),
   ],
 })
-export class PaymentsModule {}
+export class PaymentsModule { }
