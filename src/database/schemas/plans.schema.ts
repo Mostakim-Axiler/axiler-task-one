@@ -9,7 +9,7 @@ export class Plan {
   @Prop({ required: true })
   name: string; // Free, Monthly, Yearly
 
-  @Prop({ required: true })
+  @Prop({ required: true, min: 0 })
   price: number;
 
   @Prop({ enum: ['free', 'monthly', 'yearly'], required: true })

@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../../database/schemas/users.schema';
 import { Role, RoleDocument } from '../../database/schemas/roles.schema';
+import { formatUser } from 'src/helpers/helpers';
+import { FormattedUserData } from './type';
 
 @Injectable()
 export class UsersService {
@@ -51,9 +53,11 @@ export class UsersService {
         return this.userModel.findById(id).populate('role');
     }
 
-    async findAllUsers(): Promise<UserDocument[]> {
-        return this.userModel
+    async findAllUsers(): Promise<FormattedUserData[] | []> {
+        const users = await this.userModel
             .find()
             .populate('role');
+
+        return users.map(formatUser);
     }
 }
