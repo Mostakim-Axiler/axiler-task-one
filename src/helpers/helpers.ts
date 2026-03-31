@@ -7,3 +7,15 @@ export const formatUser = (user: any) => {
         isActive: user.isActive
     };
 };
+
+export const calculateEndDate = (start: Date, interval: string): Date => {
+    const end = new Date(start);
+
+    if (interval === 'month') {
+        end.setMonth(end.getMonth() + 1);
+    } else if (interval === 'year') {
+        end.setFullYear(end.getFullYear() + 1);
+    }
+
+    return end;
+}

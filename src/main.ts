@@ -4,9 +4,15 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppLogger } from './logger/logger.service';
 import { ErrorLoggingInterceptor } from './logger/logger.interceptor';
 import { useContainer } from 'class-validator';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(
+    '/subscriptions/webhook',
+    express.raw({ type: 'application/json' }),
+  );
 
   // ✅ Enable DI in validators (VERY IMPORTANT for IsEmailUnique)
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
