@@ -9,7 +9,6 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { PaymentsModule } from './modules/payments/payments.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { SeedModule } from './database/seeds/seed.module';
-import { WelcomeModule } from './modules/welcome/welcome.module';
 import { BullModule } from '@nestjs/bullmq';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { join } from 'path';
@@ -58,9 +57,6 @@ import { EmailModule } from './modules/mail/mail.module';
         },
       }),
     }),
-
-    // your existing modules (UNCHANGED)
-    WelcomeModule,
     SeedModule,
     EmailModule,
     AuthModule,

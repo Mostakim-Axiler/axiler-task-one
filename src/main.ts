@@ -5,16 +5,21 @@ import { AppLogger } from './logger/logger.service';
 import { ErrorLoggingInterceptor } from './logger/logger.interceptor';
 import { useContainer } from 'class-validator';
 import * as express from 'express';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.setGlobalPrefix('api', {
+    exclude: ['/'], // exclude root
+  });
 
   app.use(
     '/subscriptions/webhook',
     express.raw({ type: 'application/json' }),
   );
 
-  // ✅ Enable DI in validators (VERY IMPORTANT for IsEmailUnique)
+  // ✅ Enable DI in validators
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
   // ✅ Validation
@@ -26,13 +31,26 @@ async function bootstrap() {
     }),
   );
 
-  // ✅ Get logger from DI (NOT new AppLogger())
+  // ✅ Logger
   const logger = new AppLogger();
-
   app.useLogger(logger);
 
   // ✅ Global Error Interceptor
   app.useGlobalInterceptors(new ErrorLoggingInterceptor(logger));
+
+  // =========================
+  // ✅ Swagger Configuration
+  // =========================
+  const config = new DocumentBuilder()
+    .setTitle('Simple SASS')
+    .setDescription('API documentation')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+
+  SwaggerModule.setup('/', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }
