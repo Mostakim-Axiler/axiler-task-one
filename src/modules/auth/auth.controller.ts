@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Query, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, SignupDto, RefreshTokenDto } from './auth.dto';
 import { Public } from 'src/decorators';
@@ -15,6 +15,12 @@ export class AuthController {
     async signup(@Body() body: SignupDto) {
         // Returns { accessToken, refreshToken }
         return this.authService.signup(body);
+    }
+
+    @Public()
+    @Get('verify')
+    async verifyEmail(@Query('token') token: string) {
+        return this.authService.verifyEmail(token);
     }
 
     // -------------------------

@@ -5,9 +5,11 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { RolesModule } from '../roles/roles.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EmailModule } from '../mail/mail.module';
 
 @Module({
     imports: [
+        EmailModule,
         UsersModule,
         RolesModule,
         ConfigModule,

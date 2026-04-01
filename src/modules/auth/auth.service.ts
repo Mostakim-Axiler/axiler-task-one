@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { formatUser } from '../../helpers/helpers';
+import { EmailService } from '../mail/mail.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -10,6 +12,7 @@ export class AuthService {
     constructor(
         private jwtService: JwtService,
         private usersService: UsersService,
+        private emailService: EmailService,
     ) { }
 
     // ------------------------
@@ -60,16 +63,48 @@ export class AuthService {
     // ------------------------
     async signup(data: any) {
         const hashed = await this.hashPassword(data.password);
+
+        // 🔥 generate email verification token
+        const token = crypto.randomBytes(32).toString('hex');
+
         const user = await this.usersService.create({
             ...data,
             password: hashed,
+            isEmailVerified: false,
+            emailVerificationToken: token,
+            emailVerificationExpires: new Date(Date.now() + 3600000), // 1 hour
         });
 
-        const tokens = this.generateTokens(user);
+        // ✅ send async email
+        await this.emailService.sendVerificationEmail(
+            user.email,
+            token,
+        );
 
         return {
+            message: 'Signup successful. Please verify your email.',
             user: formatUser(user),
-            ...tokens,
+        };
+    }
+
+    async verifyEmail(token: string) {
+        const user = await this.usersService['userModel'].findOne({
+            emailVerificationToken: token,
+            emailVerificationExpires: { $gt: new Date() },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid or expired token');
+        }
+
+        user.isEmailVerified = true;
+        user.emailVerificationToken = null;
+        user.emailVerificationExpires = null;
+
+        await user.save();
+
+        return {
+            message: 'Email verified successfully',
         };
     }
 
@@ -79,6 +114,10 @@ export class AuthService {
     async login(data: any) {
         const user = await this.usersService.findByEmail(data.email);
         if (!user) throw new UnauthorizedException('Invalid credentials');
+
+        if (!user.isEmailVerified) {
+            throw new UnauthorizedException('Please verify your email first');
+        }
 
         const isMatch = await this.comparePassword(data.password, user.password);
         if (!isMatch) throw new UnauthorizedException('Invalid credentials');
