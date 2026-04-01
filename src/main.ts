@@ -15,7 +15,7 @@ async function bootstrap() {
   });
 
   app.use(
-    '/subscriptions/webhook',
+    '/api/subscriptions/webhook',
     express.raw({ type: 'application/json' }),
   );
 

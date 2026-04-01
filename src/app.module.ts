@@ -32,12 +32,17 @@ import { EmailModule } from './modules/mail/mail.module';
     // ✅ Redis (BullMQ)
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST'),
-          port: Number(config.get<number>('REDIS_PORT')),
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const password = config.get<string>('REDIS_PASSWORD');
+
+        return {
+          connection: {
+            host: config.get<string>('REDIS_HOST'),
+            port: Number(config.get<number>('REDIS_PORT')),
+            ...(password ? { password } : {}),
+          },
+        };
+      },
     }),
 
     // ✅ Mailtrap (Mailer)
