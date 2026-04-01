@@ -23,7 +23,6 @@ export class SubscriptionsController {
         );
     }
 
-    // 🔥 MUST be public
     @Public()
     @Post('webhook')
     async webhook(

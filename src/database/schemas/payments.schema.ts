@@ -9,6 +9,9 @@ export class Payment {
   @Prop({ type: Types.ObjectId, ref: 'User' })
   user: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Subscription' })
+  subscription: Types.ObjectId;
+
   @Prop()
   stripePaymentIntentId: string;
 

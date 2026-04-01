@@ -84,7 +84,6 @@ export class AuthService {
         if (!isMatch) throw new UnauthorizedException('Invalid credentials');
 
         const tokens = this.generateTokens(user);
-        this.logger.log("use logged in");
 
         return {
             user: formatUser(user),

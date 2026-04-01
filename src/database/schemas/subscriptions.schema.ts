@@ -6,7 +6,7 @@ export type SubscriptionDocument = Subscription & Document;
 
 @Schema({ timestamps: true })
 export class Subscription {
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User', unique: true })
   user: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Plan' })

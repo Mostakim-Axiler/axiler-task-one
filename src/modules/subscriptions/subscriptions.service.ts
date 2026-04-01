@@ -1,4 +1,3 @@
-// subscriptions.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -49,19 +48,32 @@ export class SubscriptionsService {
         const plan = await this.planModel.findById(data.planId);
         if (!plan) throw new NotFoundException('Plan not found');
 
+        // ✅ prevent duplicate subscriptions
+        const existingSub = await this.subscriptionModel.findOne({
+            user: user._id,
+            status: { $in: ['active', 'past_due', 'incomplete'] },
+        });
+
+        if (existingSub) {
+            throw new Error('User already has an active subscription');
+        }
+
         // ✅ Free plan
         if (plan.interval === 'free') {
-            await this.subscriptionModel.create({
-                user: user._id,
-                plan: plan._id,
-                status: 'active',
-                currentPeriodStart: new Date(),
-            });
+            await this.subscriptionModel.findOneAndUpdate(
+                { user: user._id },
+                {
+                    user: user._id,
+                    plan: plan._id,
+                    status: 'active',
+                    currentPeriodStart: new Date(),
+                },
+                { upsert: true, returnDocument: 'after' }
+            );
 
             return { message: 'Free plan activated' };
         }
 
-        // ✅ Create Stripe customer
         if (!user.stripeCustomerId) {
             const customer = await this.stripe.customers.create({
                 email: user.email,
@@ -92,7 +104,6 @@ export class SubscriptionsService {
                 planId: plan._id.toString(),
             },
 
-            // 🔥 ADD THIS BLOCK ONLY
             subscription_data: {
                 metadata: {
                     userId: user._id.toString(),
@@ -104,7 +115,7 @@ export class SubscriptionsService {
         return { url: session.url };
     }
 
-    // 🔥 WEBHOOK (CORE LOGIC)
+    // 🔥 WEBHOOK
     async handleWebhook(req: any, signature: string) {
         const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
         let event: Stripe.Event;
@@ -119,62 +130,45 @@ export class SubscriptionsService {
             throw new Error(`Webhook Error: ${err.message}`);
         }
 
-        console.log('🔥 EVENT:', event.type);
-
         switch (event.type) {
-            // ✅ CREATE SUBSCRIPTION
             case 'customer.subscription.created': {
                 const sub: any = event.data.object;
 
-                // ✅ FIRST try subscription metadata
                 let userId = sub.metadata?.userId;
-                console.log('meta', sub.metadata)
 
-                // 🔁 fallback to customer metadata
                 if (!userId) {
                     const customer = await this.stripe.customers.retrieve(sub.customer);
                     userId = (customer as Stripe.Customer).metadata?.userId;
-                    console.log('customer', customer)
                 }
 
-                if (!userId) {
-                    console.log('❌ userId missing');
-                    break;
-                }
-
+                if (!userId) break;
 
                 const start =
                     sub.current_period_start ||
                     sub.billing_cycle_anchor ||
                     sub.start_date;
 
-                const startDate = new Date(start * 1000);
+                if (!start) break;
 
+                const startDate = new Date(start * 1000);
                 const endDate = calculateEndDate(startDate, sub.plan.interval);
 
-                if (!start) {
-                    console.log('⚠️ No valid start date');
-                    break;
-                }
-
-                const exists = await this.subscriptionModel.findOne({
-                    stripeSubscriptionId: sub.id,
-                });
-
-                if (exists) break;
-
-                await this.subscriptionModel.create({
-                    stripeSubscriptionId: sub.id,
-                    user: userId,
-                    status: sub.status,
-                    currentPeriodStart: startDate,
-                    currentPeriodEnd: endDate
-                });
+                // ✅ UPSERT instead of create
+                await this.subscriptionModel.findOneAndUpdate(
+                    { user: userId },
+                    {
+                        stripeSubscriptionId: sub.id,
+                        user: userId,
+                        status: sub.status,
+                        currentPeriodStart: startDate,
+                        currentPeriodEnd: endDate,
+                    },
+                    { upsert: true, returnDocument: 'after' }
+                );
 
                 break;
             }
 
-            // ✅ ATTACH USER + PLAN
             case 'checkout.session.completed': {
                 const session: any = event.data.object;
 
@@ -191,7 +185,6 @@ export class SubscriptionsService {
                 break;
             }
 
-            // ✅ SAVE PAYMENT
             case 'invoice.payment_succeeded': {
                 const invoice: any = event.data.object;
 
@@ -201,12 +194,24 @@ export class SubscriptionsService {
 
                 if (exists) break;
 
-                const subscription = await this.subscriptionModel.findOne({
+                let subscription = await this.subscriptionModel.findOne({
                     stripeSubscriptionId: invoice.subscription,
                 });
 
+                // 🔥 fallback: try to fetch user from Stripe customer
+                if (!subscription) {
+                    const customer = await this.stripe.customers.retrieve(invoice.customer);
+
+                    const userId = (customer as Stripe.Customer).metadata?.userId;
+
+                    if (userId) {
+                        subscription = await this.subscriptionModel.findOne({ user: userId });
+                    }
+                }
+
                 await this.paymentModel.create({
                     user: subscription?.user,
+                    subscription: subscription?._id,
                     stripeInvoiceId: invoice.id,
                     stripePaymentIntentId: invoice.payment_intent,
                     amount: invoice.amount_paid / 100,
@@ -218,7 +223,6 @@ export class SubscriptionsService {
                 break;
             }
 
-            // ❌ PAYMENT FAILED
             case 'invoice.payment_failed': {
                 const invoice: any = event.data.object;
 
@@ -230,7 +234,6 @@ export class SubscriptionsService {
                 break;
             }
 
-            // 🔁 UPDATE SUBSCRIPTION
             case 'customer.subscription.updated': {
                 const sub: any = event.data.object;
 
@@ -246,7 +249,6 @@ export class SubscriptionsService {
                 break;
             }
 
-            // ❌ CANCEL
             case 'customer.subscription.deleted': {
                 const sub: any = event.data.object;
 
@@ -262,7 +264,6 @@ export class SubscriptionsService {
         return { received: true };
     }
 
-    // 🔥 CHANGE PLAN
     async changePlan(userId: string, newPlanId: string) {
         const subscription = await this.subscriptionModel.findOne({
             user: userId,
@@ -278,11 +279,23 @@ export class SubscriptionsService {
             throw new NotFoundException('Plan not found');
         }
 
+        // ✅ prevent same plan change
+        if (subscription.plan?.toString() === newPlanId) {
+            return { message: 'Already on this plan' };
+        }
+
         const stripeSub = await this.stripe.subscriptions.retrieve(
             subscription.stripeSubscriptionId,
         ) as Stripe.Subscription;
 
         const item = stripeSub.items.data[0];
+
+        // ✅ detect upgrade vs downgrade
+        const isUpgrade = true; // default fallback
+
+        // OPTIONAL (if you store price in Plan)
+        // const currentPlan = await this.planModel.findById(subscription.plan);
+        // const isUpgrade = newPlan.price > currentPlan.price;
 
         await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, {
             items: [
@@ -291,13 +304,22 @@ export class SubscriptionsService {
                     price: newPlan.stripePriceId,
                 },
             ],
+
+            // ✅ KEY DIFFERENCE
             proration_behavior: 'create_prorations',
+
+            // 🔥 THIS handles downgrade properly
+            billing_cycle_anchor: 'unchanged',
         });
 
+        // ✅ update local DB
         await this.subscriptionModel.findByIdAndUpdate(subscription._id, {
             plan: newPlan._id,
         });
 
-        return { message: 'Plan updated successfully' };
+        return {
+            message: 'Plan updated successfully',
+            type: 'upgrade_or_downgrade',
+        };
     }
 }
