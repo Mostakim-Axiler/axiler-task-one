@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
@@ -83,11 +83,11 @@ export class AuthService {
         });
 
         if (!user) {
-            throw new UnauthorizedException('Invalid or expired token');
+            throw new BadRequestException('Invalid or expired token');
         }
 
         if (user.isEmailVerified) {
-            throw new UnauthorizedException('Email already verified');
+            throw new BadRequestException('Email already verified');
         }
 
         user.isEmailVerified = true;
@@ -105,11 +105,11 @@ export class AuthService {
         const user = await this.usersService.findByEmail(email);
 
         if (!user) {
-            throw new UnauthorizedException('Invalid credentials');
+            throw new BadRequestException('Invalid credentials');
         }
 
         if (user.isEmailVerified) {
-            throw new UnauthorizedException('Email already verified');
+            throw new BadRequestException('Email already verified');
         }
 
         const token = this.generateVerificationToken();
@@ -134,7 +134,7 @@ export class AuthService {
         const user = await this.usersService.findByEmail(email);
 
         if (!user) {
-            throw new UnauthorizedException('Invalid credentials');
+            throw new BadRequestException('Invalid credentials');
         }
 
         const token = this.generateVerificationToken();
@@ -162,7 +162,7 @@ export class AuthService {
         });
 
         if (!user) {
-            throw new UnauthorizedException('Invalid or expired token');
+            throw new BadRequestException('Invalid or expired token');
         }
 
         const hashedPassword = await this.hashPassword(newPassword);
@@ -181,14 +181,14 @@ export class AuthService {
 
     async login(data: any) {
         const user = await this.usersService.findByEmail(data.email);
-        if (!user) throw new UnauthorizedException('Invalid credentials');
+        if (!user) throw new BadRequestException('Invalid credentials');
 
         if (!user.isEmailVerified) {
-            throw new UnauthorizedException('Please verify your email first');
+            throw new BadRequestException('Please verify your email first');
         }
 
         const isMatch = await this.comparePassword(data.password, user.password);
-        if (!isMatch) throw new UnauthorizedException('Invalid credentials');
+        if (!isMatch) throw new BadRequestException('Invalid credentials');
 
         const tokens = this.generateTokens(user);
 

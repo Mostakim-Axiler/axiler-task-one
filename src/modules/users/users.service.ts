@@ -20,7 +20,7 @@ export class UsersService {
         const existingUser = await this.userModel.findOne({ email: data.email });
 
         if (existingUser) {
-            throw new Error('Email already exists');
+            throw new Error('This email is already registered');
         }
         let roleId = data.role;
 
