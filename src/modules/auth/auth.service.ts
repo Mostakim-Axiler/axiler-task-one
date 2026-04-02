@@ -2,7 +2,6 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { formatUser } from '../../helpers/helpers';
 import { EmailService } from '../mail/mail.service';
 import * as crypto from 'crypto';
 
@@ -15,9 +14,6 @@ export class AuthService {
         private emailService: EmailService,
     ) { }
 
-    // ------------------------
-    // Hash & compare passwords
-    // ------------------------
     async hashPassword(password: string) {
         return bcrypt.hash(password, 10);
     }
@@ -26,9 +22,6 @@ export class AuthService {
         return bcrypt.compare(password, hash);
     }
 
-    // ------------------------
-    // Generate tokens
-    // ------------------------
     generateTokens(user: any) {
         const payload = { sub: user._id.toString(), role: user.role };
 
@@ -45,9 +38,10 @@ export class AuthService {
         return { accessToken, refreshToken };
     }
 
-    // ------------------------
-    // Verify refresh token
-    // ------------------------
+    generateVerificationToken() {
+        return crypto.randomBytes(32).toString('hex');
+    }
+
     async verifyRefreshToken(token: string) {
         try {
             return this.jwtService.verify(token, {
@@ -58,14 +52,10 @@ export class AuthService {
         }
     }
 
-    // ------------------------
-    // Signup
-    // ------------------------
     async signup(data: any) {
         const hashed = await this.hashPassword(data.password);
 
-        // 🔥 generate email verification token
-        const token = crypto.randomBytes(32).toString('hex');
+        const token = this.generateVerificationToken();
 
         const user = await this.usersService.create({
             ...data,
@@ -75,7 +65,7 @@ export class AuthService {
             emailVerificationExpires: new Date(Date.now() + 3600000), // 1 hour
         });
 
-        // ✅ send async email
+        // send async email
         await this.emailService.sendVerificationEmail(
             user.email,
             token,
@@ -83,7 +73,6 @@ export class AuthService {
 
         return {
             message: 'Signup successful. Please verify your email.',
-            user: formatUser(user),
         };
     }
 
@@ -97,6 +86,10 @@ export class AuthService {
             throw new UnauthorizedException('Invalid or expired token');
         }
 
+        if (user.isEmailVerified) {
+            throw new UnauthorizedException('Email already verified');
+        }
+
         user.isEmailVerified = true;
         user.emailVerificationToken = null;
         user.emailVerificationExpires = null;
@@ -108,9 +101,84 @@ export class AuthService {
         };
     }
 
-    // ------------------------
-    // Login
-    // ------------------------
+    async resendVerification(email: string) {
+        const user = await this.usersService.findByEmail(email);
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        if (user.isEmailVerified) {
+            throw new UnauthorizedException('Email already verified');
+        }
+
+        const token = this.generateVerificationToken();
+
+        user.emailVerificationToken = token;
+        user.emailVerificationExpires = new Date(Date.now() + 3600000); // 1 hour
+
+        await user.save();
+
+        // send async email
+        await this.emailService.sendVerificationEmail(
+            user.email,
+            token,
+        );
+
+        return {
+            message: 'Verification email resent successfully',
+        };
+    }
+
+    async forgotPassword(email: string) {
+        const user = await this.usersService.findByEmail(email);
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        const token = this.generateVerificationToken();
+
+        user.passwordResetToken = token;
+        user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 hour
+
+        await user.save();
+
+        // send async email
+        await this.emailService.sendPasswordResetEmail(
+            user.email,
+            token,
+        );
+
+        return {
+            message: 'Password reset email sent successfully',
+        };
+    }
+
+    async passwordReset(token: string, newPassword: string) {
+        const user = await this.usersService['userModel'].findOne({
+            passwordResetToken: token,
+            passwordResetExpires: { $gt: new Date() },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid or expired token');
+        }
+
+        const hashedPassword = await this.hashPassword(newPassword);
+
+        user.password = hashedPassword;
+
+        user.passwordResetToken = null;
+        user.passwordResetExpires = null;
+
+        await user.save();
+
+        return {
+            message: 'Password reset successful',
+        };
+    }
+
     async login(data: any) {
         const user = await this.usersService.findByEmail(data.email);
         if (!user) throw new UnauthorizedException('Invalid credentials');
@@ -124,15 +192,9 @@ export class AuthService {
 
         const tokens = this.generateTokens(user);
 
-        return {
-            user: formatUser(user),
-            ...tokens,
-        };
+        return { ...tokens };
     }
 
-    // ------------------------
-    // REFRESH TOKENS
-    // ------------------------
     async refresh(refreshToken: string) {
         // Step 1: Verify the refresh token
         const payload = await this.verifyRefreshToken(refreshToken);
@@ -144,9 +206,6 @@ export class AuthService {
         // Step 3: Generate new tokens
         const tokens = this.generateTokens(user);
 
-        return {
-            user: formatUser(user),
-            ...tokens,
-        };
+        return { ...tokens };
     }
 }

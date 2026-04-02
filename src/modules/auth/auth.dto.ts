@@ -1,6 +1,6 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { IsEmailUnique } from 'src/decorators/email-unique.decorator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmailUnique } from 'src/decorators/email-unique.decorator';
 
 export class SignupDto {
   @ApiProperty({ example: 'John Doe' })
@@ -24,7 +24,7 @@ export class SignupDto {
 export class VerifyEmailDto {
   @ApiProperty({
     example: 'email_verification_token_here',
-    description: 'Email verification token sent to user email',
+    description: 'Email verification token',
   })
   @IsString()
   @IsNotEmpty()
@@ -48,4 +48,37 @@ export class RefreshTokenDto {
   @IsString()
   @IsNotEmpty()
   readonly refreshToken: string;
+}
+
+export class ResendVerificationDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({
+    example: 'reset_token_here',
+    description: 'Password reset token',
+  })
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @ApiProperty({
+    example: 'newStrongPassword123',
+    minLength: 6,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  newPassword: string;
 }

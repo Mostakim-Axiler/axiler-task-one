@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
+import { MailerModule } from '@nestjs-modules/mailer';
+
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RolesModule } from './modules/roles/roles.module';
@@ -9,14 +14,21 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { PaymentsModule } from './modules/payments/payments.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { SeedModule } from './database/seeds/seed.module';
-import { BullModule } from '@nestjs/bullmq';
-import { MailerModule } from '@nestjs-modules/mailer';
-import { join } from 'path';
 import { EmailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // ✅ Throttler config (modern format)
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 10,
+        },
+      ],
+    }),
 
     // ✅ Mongo
     MongooseModule.forRootAsync({
@@ -45,7 +57,7 @@ import { EmailModule } from './modules/mail/mail.module';
       },
     }),
 
-    // ✅ Mailtrap (Mailer)
+    // ✅ Mail
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -62,6 +74,7 @@ import { EmailModule } from './modules/mail/mail.module';
         },
       }),
     }),
+
     SeedModule,
     EmailModule,
     AuthModule,
@@ -71,6 +84,13 @@ import { EmailModule } from './modules/mail/mail.module';
     SubscriptionsModule,
     PaymentsModule,
     StripeModule,
+  ],
+
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule { }

@@ -31,6 +31,23 @@ export class UsersController {
         return this.usersService.findAllUsers();
     }
 
+    // 🔹 me
+    @Auth()
+    @ApiBearerAuth()
+    @Get('me')
+    @ApiOperation({ summary: 'Get current user' })
+    @ApiResponse({
+        status: 200,
+        description: 'User details',
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Unauthorized',
+    })
+    async me(@Req() req) {
+        return this.usersService.findById(req.user.sub);
+    }
+
     // 🔹 Get current user's subscription
     @Auth()
     @ApiBearerAuth()

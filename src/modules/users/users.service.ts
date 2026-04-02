@@ -39,7 +39,7 @@ export class UsersService {
             role: roleId,
         });
 
-        return user.populate('role');
+        return user;
     }
 
     // 🔹 Find user by email (IMPORTANT for login)
@@ -51,8 +51,9 @@ export class UsersService {
     }
 
     // 🔹 Find by id
-    async findById(id: string): Promise<UserDocument | null> {
-        return this.userModel.findById(id).populate('role');
+    async findById(id: string): Promise<any | null> {
+        const user = await this.userModel.findById(id).populate('role');
+        return formatUser(user);
     }
 
     async findAllUsers(): Promise<FormattedUserData[] | []> {
