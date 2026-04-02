@@ -57,7 +57,7 @@ export class AuthController {
     // -------------------------
     // RESEND VERIFICATION
     // -------------------------
-    @Throttle({ default: { limit: 1, ttl: 60000 } })
+    @Throttle({ default: { limit: 3, ttl: 60000 } })
     @Public()
     @Post('resend-verification')
     @ApiOperation({ summary: 'Resend email verification link' })
@@ -100,7 +100,7 @@ export class AuthController {
     // -------------------------
     // FORGOT PASSWORD
     // -------------------------
-    @Throttle({ default: { limit: 1, ttl: 60000 } })
+    @Throttle({ default: { limit: 3, ttl: 60000 } })
     @Public()
     @Post('forgot-password')
     @ApiOperation({ summary: 'Send password reset email' })

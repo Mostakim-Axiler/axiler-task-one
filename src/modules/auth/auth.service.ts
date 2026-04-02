@@ -184,7 +184,10 @@ export class AuthService {
         if (!user) throw new BadRequestException('Invalid credentials');
 
         if (!user.isEmailVerified) {
-            throw new BadRequestException('Please verify your email first');
+            throw new BadRequestException({
+                message: ['Please verify your email first'],
+                code: 'EMAIL_NOT_VERIFIED',
+            });
         }
 
         const isMatch = await this.comparePassword(data.password, user.password);
