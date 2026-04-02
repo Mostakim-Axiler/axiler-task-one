@@ -121,3 +121,15 @@ export class UpdatePlanDto {
     @IsOptional()
     readonly features?: string[];
 }
+
+// 🔹 Set Active DTO
+export class SetActiveDto {
+    @ApiProperty({
+        example: true,
+        description: 'Set whether the plan is active or not',
+        required: true,
+    })
+    @IsBoolean()
+    @IsNotEmpty()
+    readonly isActive: boolean;
+}

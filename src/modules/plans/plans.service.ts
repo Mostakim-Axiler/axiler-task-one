@@ -65,6 +65,21 @@ export class PlansService {
 
     return updated;
   }
+  
+  // 🔹 Toggle Active
+  async setActive(id: string, isActive: boolean): Promise<Plan> {
+    const plan = await this.planModel.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true },
+    );
+
+    if (!plan) {
+      throw new NotFoundException('Plan not found');
+    }
+
+    return plan;
+  }
 
   // 🔹 Delete Plan
   async delete(id: string): Promise<{ message: string }> {
