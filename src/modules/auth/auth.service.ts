@@ -190,6 +190,13 @@ export class AuthService {
             });
         }
 
+        if (!user.isActive) {
+            throw new BadRequestException({
+                message: ['Your account is deactivated'],
+                code: 'ACCOUNT_DEACTIVATED',
+            });
+        }
+
         const isMatch = await this.comparePassword(data.password, user.password);
         if (!isMatch) throw new BadRequestException('Invalid credentials');
 

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../../database/schemas/users.schema';
 import { Role, RoleDocument } from '../../database/schemas/roles.schema';
 import { Subscription, SubscriptionDocument } from 'src/database/schemas/subscriptions.schema';
@@ -78,4 +79,72 @@ export class UsersService {
 
         return subscription;
     }
+    // 🔹 Toggle Active status for user (Admin only)
+async setActive(
+  id: string,
+  isActive: boolean,
+): Promise<any> {
+  // 🔒 Validate MongoDB ObjectId
+  if (!Types.ObjectId.isValid(id)) {
+    throw new BadRequestException('Invalid user ID');
+  }
+
+  const user = await this.userModel
+    .findByIdAndUpdate(
+      id,
+      { isActive },
+      {
+        new: true,
+        runValidators: true,
+      },
+    )
+    .populate('role');
+
+  // ❌ If user not found
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  return formatUser(user);
+}
+    // 🔹 Update current user info
+    async updateUser(
+  id: string,
+  dto: { name?: string; email?: string },
+): Promise<any> {
+  // 🔒 Only allow specific fields
+  const updateData: any = {};
+
+  if (dto.name) {
+    updateData.name = dto.name.trim();
+  }
+
+  if (dto.email) {
+    const email = dto.email.toLowerCase().trim();
+
+    // 🔍 Check duplicate email
+    const existingUser = await this.userModel.findOne({ email });
+    if (existingUser && existingUser._id.toString() !== id) {
+      throw new BadRequestException('Email already in use');
+    }
+
+    updateData.email = email;
+
+    // 💡 Optional: require re-verification
+    updateData.isEmailVerified = false;
+  }
+
+  const user = await this.userModel
+    .findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    })
+    .populate('role'); // ✅ proper populate
+
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  return formatUser(user);
+}
 }
