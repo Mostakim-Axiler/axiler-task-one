@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Plan, PlanDocument } from '../../database/schemas/plans.schema';
 import { StripeService } from '../stripe/stripe.service';
 
@@ -42,6 +42,9 @@ export class PlansService {
 
   // 🔹 Get Single Plan
   async findById(id: string): Promise<Plan> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid plan ID');
+    }
     const plan = await this.planModel.findById(id);
 
     if (!plan) {
@@ -53,6 +56,9 @@ export class PlansService {
 
   // 🔹 Update Plan
   async update(id: string, data: any): Promise<Plan> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid plan ID');
+    }
     const updated = await this.planModel.findByIdAndUpdate(
       id,
       data,
