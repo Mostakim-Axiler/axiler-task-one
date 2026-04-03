@@ -26,11 +26,9 @@ import {
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
 export class SubscriptionsController {
-  constructor(
-    private readonly subscriptionsService: SubscriptionsService,
-  ) {}
+  constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
-    // 🔹 Get all subscriptions (Admin only)
+  // 🔹 Get all subscriptions (Admin only)
   @Auth('admin')
   @ApiBearerAuth()
   @Get()
@@ -70,10 +68,7 @@ export class SubscriptionsController {
   @ApiBody({ type: ChangePlanDto })
   @ApiResponse({ status: 200, description: 'Plan changed successfully' })
   changePlan(@Body() body: ChangePlanDto) {
-    return this.subscriptionsService.changePlan(
-      body.userId,
-      body.planId,
-    );
+    return this.subscriptionsService.changePlan(body.userId, body.planId);
   }
 
   // 🔹 Stripe Webhook

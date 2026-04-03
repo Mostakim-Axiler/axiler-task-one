@@ -8,9 +8,7 @@ import { PaymentsController } from './payments.controller';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Payment.name, schema: PaymentSchema },
-    ]),
+    MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }]),
     ConfigModule,
 
     JwtModule.registerAsync({
@@ -23,6 +21,6 @@ import { PaymentsController } from './payments.controller';
   ],
   providers: [PaymentsService],
   controllers: [PaymentsController],
-  exports: [PaymentsService]
+  exports: [PaymentsService],
 })
-export class PaymentsModule { }
+export class PaymentsModule {}

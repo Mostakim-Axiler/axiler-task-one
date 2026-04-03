@@ -4,21 +4,21 @@ import { MailerService } from '@nestjs-modules/mailer';
 
 @Processor('email')
 export class EmailProcessor extends WorkerHost {
-    constructor(private readonly mailerService: MailerService) {
-        super();
-    }
+  constructor(private readonly mailerService: MailerService) {
+    super();
+  }
 
-    async process(job: Job): Promise<void> {
-        const { email, token } = job.data;
+  async process(job: Job): Promise<void> {
+    const { email, token } = job.data;
 
-        switch (job.name) {
-            case 'send-verification-email': {
-                const url = `${process.env.FRONTEND_URL}/verify?token=${token}`;
+    switch (job.name) {
+      case 'send-verification-email': {
+        const url = `${process.env.FRONTEND_URL}/verify?token=${token}`;
 
-                await this.mailerService.sendMail({
-                    to: email,
-                    subject: 'Verify Your Email Address',
-                    html: `
+        await this.mailerService.sendMail({
+          to: email,
+          subject: 'Verify Your Email Address',
+          html: `
 <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
   <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
     
@@ -55,19 +55,19 @@ export class EmailProcessor extends WorkerHost {
   </div>
 </div>
                     `,
-                });
+        });
 
-                console.log('✅ Verification email sent to:', email);
-                break;
-            }
+        console.log('✅ Verification email sent to:', email);
+        break;
+      }
 
-            case 'send-reset-password-email': {
-                const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+      case 'send-reset-password-email': {
+        const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
-                await this.mailerService.sendMail({
-                    to: email,
-                    subject: 'Reset Your Password',
-                    html: `
+        await this.mailerService.sendMail({
+          to: email,
+          subject: 'Reset Your Password',
+          html: `
 <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
   <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
     
@@ -104,14 +104,14 @@ export class EmailProcessor extends WorkerHost {
   </div>
 </div>
                     `,
-                });
+        });
 
-                console.log('✅ Reset password email sent to:', email);
-                break;
-            }
+        console.log('✅ Reset password email sent to:', email);
+        break;
+      }
 
-            default:
-                console.warn(`⚠️ Unknown job: ${job.name}`);
-        }
+      default:
+        console.warn(`⚠️ Unknown job: ${job.name}`);
     }
+  }
 }

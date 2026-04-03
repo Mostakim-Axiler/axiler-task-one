@@ -8,14 +8,17 @@ import { Role, RoleSchema } from '../../database/schemas/roles.schema';
 import { UsersService } from './users.service';
 import { IsEmailUniqueConstraint } from 'src/validators/unique-email.validator';
 import { UsersController } from './users.controller';
-import { Subscription, SubscriptionSchema } from 'src/database/schemas/subscriptions.schema';
+import {
+  Subscription,
+  SubscriptionSchema,
+} from 'src/database/schemas/subscriptions.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Role.name, schema: RoleSchema },
-      { name: Subscription.name, schema: SubscriptionSchema }
+      { name: Subscription.name, schema: SubscriptionSchema },
     ]),
     ConfigModule,
 
@@ -31,4 +34,4 @@ import { Subscription, SubscriptionSchema } from 'src/database/schemas/subscript
   controllers: [UsersController],
   exports: [UsersService], // 👈 IMPORTANT (used in AuthModule)
 })
-export class UsersModule { }
+export class UsersModule {}

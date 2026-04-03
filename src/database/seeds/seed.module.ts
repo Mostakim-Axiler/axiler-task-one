@@ -9,7 +9,7 @@ import { User, UserSchema } from '../schemas/users.schema';
   imports: [
     MongooseModule.forFeature([
       { name: Role.name, schema: RoleSchema },
-      { name: User.name, schema: UserSchema }, 
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   providers: [SeedService],

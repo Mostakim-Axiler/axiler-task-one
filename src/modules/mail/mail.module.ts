@@ -5,13 +5,13 @@ import { EmailProcessor } from './mail.processor';
 import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
-    imports: [
-        BullModule.registerQueue({
-            name: 'email',
-        }),
-        MailerModule,
-    ],
-    providers: [EmailService, EmailProcessor],
-    exports: [EmailService],
+  imports: [
+    BullModule.registerQueue({
+      name: 'email',
+    }),
+    MailerModule,
+  ],
+  providers: [EmailService, EmailProcessor],
+  exports: [EmailService],
 })
-export class EmailModule { }
+export class EmailModule {}

@@ -4,8 +4,8 @@ import { RolesGuard } from '../guards/roles.guard';
 import { HasRole } from './roles.decorator';
 
 export function Auth(role?: string) {
-    return applyDecorators(
-        UseGuards(JwtAuthGuard, RolesGuard),
-        role ? HasRole(role) : (target => target),
-    );
+  return applyDecorators(
+    UseGuards(JwtAuthGuard, RolesGuard),
+    role ? HasRole(role) : (target) => target,
+  );
 }

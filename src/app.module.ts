@@ -93,4 +93,4 @@ import { EmailModule } from './modules/mail/mail.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

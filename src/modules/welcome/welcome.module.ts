@@ -3,8 +3,7 @@ import { Module } from '@nestjs/common';
 import { WelcomeController } from './welcome.controller';
 
 @Module({
-    imports: [
-    ],
-    controllers:[WelcomeController]
+  imports: [],
+  controllers: [WelcomeController],
 })
-export class WelcomeModule { }
+export class WelcomeModule {}

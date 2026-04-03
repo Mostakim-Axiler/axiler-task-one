@@ -11,7 +11,7 @@ export class SeedService implements OnModuleInit {
   constructor(
     @InjectModel(Role.name) private roleModel: Model<Role>,
     @InjectModel(User.name) private userModel: Model<User>,
-  ) { }
+  ) {}
 
   async onModuleInit() {
     await this.seedRoles();

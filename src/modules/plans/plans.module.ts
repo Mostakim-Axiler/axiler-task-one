@@ -10,9 +10,7 @@ import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Plan.name, schema: PlanSchema },
-    ]),
+    MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     StripeModule,
     ConfigModule,
 
@@ -26,6 +24,6 @@ import { JwtModule } from '@nestjs/jwt';
   ],
   providers: [PlansService],
   controllers: [PlansController],
-  exports: [PlansService]
+  exports: [PlansService],
 })
-export class PlansModule { }
+export class PlansModule {}

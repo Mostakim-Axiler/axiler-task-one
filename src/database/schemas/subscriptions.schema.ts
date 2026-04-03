@@ -31,5 +31,4 @@ export class Subscription {
   cancelAtPeriodEnd: boolean;
 }
 
-export const SubscriptionSchema =
-  SchemaFactory.createForClass(Subscription);
+export const SubscriptionSchema = SchemaFactory.createForClass(Subscription);

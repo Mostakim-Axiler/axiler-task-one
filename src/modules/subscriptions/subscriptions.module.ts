@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Subscription, SubscriptionSchema } from '../../database/schemas/subscriptions.schema';
+import {
+  Subscription,
+  SubscriptionSchema,
+} from '../../database/schemas/subscriptions.schema';
 import { User, UserSchema } from 'src/database/schemas/users.schema';
 import { SubscriptionsService } from './subscriptions.service';
 import { Plan, PlanSchema } from 'src/database/schemas/plans.schema';
@@ -18,7 +21,7 @@ import { Role, RoleSchema } from 'src/database/schemas/roles.schema';
       { name: User.name, schema: UserSchema },
       { name: Role.name, schema: RoleSchema },
       { name: Plan.name, schema: PlanSchema },
-      { name: Payment.name, schema: PaymentSchema }
+      { name: Payment.name, schema: PaymentSchema },
     ]),
     UsersModule,
     ConfigModule,
@@ -33,6 +36,6 @@ import { Role, RoleSchema } from 'src/database/schemas/roles.schema';
   ],
   providers: [SubscriptionsService],
   controllers: [SubscriptionsController],
-  exports: [SubscriptionsService]
+  exports: [SubscriptionsService],
 })
-export class SubscriptionsModule { }
+export class SubscriptionsModule {}
