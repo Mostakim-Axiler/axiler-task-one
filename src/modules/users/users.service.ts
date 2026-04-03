@@ -94,7 +94,7 @@ async setActive(
       id,
       { isActive },
       {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
       },
     )
@@ -136,10 +136,10 @@ async setActive(
 
   const user = await this.userModel
     .findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     })
-    .populate('role'); // ✅ proper populate
+    .populate('role');
 
   if (!user) {
     throw new NotFoundException('User not found');
