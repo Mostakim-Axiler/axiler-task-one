@@ -1,13 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import Stripe from 'stripe';
 
 import { User, UserDocument } from '../../database/schemas/users.schema';
 import { Plan, PlanDocument } from '../../database/schemas/plans.schema';
 import { Subscription, SubscriptionDocument } from '../../database/schemas/subscriptions.schema';
 import { Payment, PaymentDocument } from '../../database/schemas/payments.schema';
-import { calculateEndDate } from 'src/helpers/helpers';
+import { calculateEndDate, formatPayments, formatSubscription } from 'src/helpers/helpers';
 import { Role, RoleDocument } from 'src/database/schemas/roles.schema';
 
 @Injectable()
@@ -126,7 +127,7 @@ export class SubscriptionsService {
                 signature,
                 endpointSecret,
             );
-        } catch (err) {
+        } catch (err: any) {
             throw new Error(`Webhook Error: ${err.message}`);
         }
 
@@ -322,4 +323,41 @@ export class SubscriptionsService {
             type: 'upgrade_or_downgrade',
         };
     }
+
+    // 🔹 Get all subscriptions with user and plan names (Admin)
+    async getAllSubscriptionsWithDetails() {
+        const subs = await this.subscriptionModel.find()
+            .populate({ path: 'user', select: 'name email' })
+            .populate({ path: 'plan', select: 'name price interval' });
+        return subs.map(formatSubscription);
+    }
+
+    // 🔹 Get individual subscription with user and plan names (Admin)
+    async getSubscriptionWithDetails(id: string) {
+  // 🔒 Validate ObjectId
+  if (!Types.ObjectId.isValid(id)) {
+    throw new BadRequestException('Invalid subscription ID');
+  }
+
+  const sub = await this.subscriptionModel
+    .findById(id)
+    .populate({ path: 'user', select: 'name email' })
+    .populate({ path: 'plan', select: 'name price interval' })
+    .lean(); // ⚡ performance boost
+
+  if (!sub) {
+    throw new NotFoundException('Subscription not found');
+  }
+
+  // 💳 Get ALL payments for this subscription
+  const payments = await this.paymentModel
+    .find({ subscription: sub._id })
+    .sort({ createdAt: -1 }) // newest first
+    .lean();
+
+  return {
+    ...formatSubscription(sub),
+    payments: formatPayments(payments),
+  };
+}
 }

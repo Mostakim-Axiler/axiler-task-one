@@ -129,9 +129,6 @@ async setActive(
     }
 
     updateData.email = email;
-
-    // 💡 Optional: require re-verification
-    updateData.isEmailVerified = false;
   }
 
   const user = await this.userModel

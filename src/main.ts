@@ -8,27 +8,34 @@ import * as express from 'express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  // ✅ Enable cors
-  app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  // 🔥 Disable default body parser
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
   });
 
-  app.setGlobalPrefix('api', {
-    exclude: ['/'], // exclude root
-  });
-
+  // ✅ Stripe raw body ONLY
   app.use(
     '/api/subscriptions/webhook',
     express.raw({ type: 'application/json' }),
   );
 
-  // ✅ Enable DI in validators
-  useContainer(app.select(AppModule), { fallbackOnErrors: true });
+  // ✅ Normal parsers for rest of app
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // ✅ CORS
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  });
+
+  app.setGlobalPrefix('api', {
+    exclude: ['/'],
+  });
 
   // ✅ Validation
+  useContainer(app.select(AppModule), { fallbackOnErrors: true });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -40,13 +47,9 @@ async function bootstrap() {
   // ✅ Logger
   const logger = new AppLogger();
   app.useLogger(logger);
-
-  // ✅ Global Error Interceptor
   app.useGlobalInterceptors(new ErrorLoggingInterceptor(logger));
 
-  // =========================
-  // ✅ Swagger Configuration
-  // =========================
+  // ✅ Swagger
   const config = new DocumentBuilder()
     .setTitle('Simple SASS')
     .setDescription('API documentation')
@@ -55,7 +58,6 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-
   SwaggerModule.setup('/', app, document);
 
   await app.listen(process.env.PORT ?? 3000);

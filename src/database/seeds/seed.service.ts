@@ -46,7 +46,8 @@ export class SeedService implements OnModuleInit {
         email: 'admin@example.com',
         password: hashedPassword,
         role: adminRole._id,
-        isEmailVerified: true
+        isEmailVerified: true,
+        isActive: true,
       });
 
       console.log('✅ Admin user created');
