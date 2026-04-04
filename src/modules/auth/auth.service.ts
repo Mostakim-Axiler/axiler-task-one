@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -15,7 +17,7 @@ export class AuthService {
   private logger = new Logger(AuthService.name);
   constructor(
     private jwtService: JwtService,
-    private usersService: UsersService,
+    @Inject(forwardRef(() => UsersService)) private usersService: UsersService,
     private emailService: EmailService,
   ) {}
 

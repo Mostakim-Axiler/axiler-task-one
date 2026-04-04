@@ -1,5 +1,5 @@
 //plans.module.ts
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Plan, PlanSchema } from '../../database/schemas/plans.schema';
 import { PlansService } from './plans.service';
@@ -11,9 +11,8 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
-    StripeModule,
+    forwardRef(() => StripeModule),
     ConfigModule,
-
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

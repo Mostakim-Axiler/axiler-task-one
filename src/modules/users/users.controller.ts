@@ -1,4 +1,13 @@
-import { Controller, Get, Req, Patch, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Req,
+  Patch,
+  Param,
+  Body,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -15,7 +24,9 @@ import { UpdateUserDto } from './users.dto';
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    @Inject(forwardRef(() => UsersService)) private usersService: UsersService,
+  ) {}
 
   // 🔹 Get all users (Admin only)
   @Auth('admin')

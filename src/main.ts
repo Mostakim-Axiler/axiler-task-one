@@ -8,18 +8,23 @@ import * as express from 'express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  // 🔥 Disable default body parser
   const app = await NestFactory.create(AppModule, {
-    bodyParser: false,
+    bodyParser: false, // 🔥 required for Stripe
   });
 
-  // ✅ Stripe raw body ONLY
+  // 🔥 Stripe Webhook: MUST be before any body parser
   app.use(
     '/api/subscriptions/webhook',
     express.raw({ type: 'application/json' }),
   );
 
-  // ✅ Normal parsers for rest of app
+  // 🔥 Attach rawBody (required by Stripe)
+  app.use('/api/subscriptions/webhook', (req: any, res, next) => {
+    req.rawBody = req.body;
+    next();
+  });
+
+  // ✅ Normal body parsers for rest of app
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -29,13 +34,13 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // ✅ Global prefix
   app.setGlobalPrefix('api', {
     exclude: ['/'],
   });
 
   // ✅ Validation
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
-
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -62,4 +67,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
+
 bootstrap();

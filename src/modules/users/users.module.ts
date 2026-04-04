@@ -1,5 +1,5 @@
 //users.module.ts
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -12,6 +12,7 @@ import {
   Subscription,
   SubscriptionSchema,
 } from 'src/database/schemas/subscriptions.schema';
+import { StripeModule } from '../stripe/stripe.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import {
       { name: Role.name, schema: RoleSchema },
       { name: Subscription.name, schema: SubscriptionSchema },
     ]),
+    forwardRef(() => StripeModule),
     ConfigModule,
 
     JwtModule.registerAsync({
@@ -32,6 +34,6 @@ import {
   ],
   providers: [IsEmailUniqueConstraint, UsersService],
   controllers: [UsersController],
-  exports: [UsersService], // 👈 IMPORTANT (used in AuthModule)
+  exports: [UsersService],
 })
 export class UsersModule {}

@@ -51,25 +51,29 @@ export class SubscriptionsController {
   }
 
   // 🔹 Checkout
-  @Public()
+  @Auth('customer')
+  @ApiBearerAuth()
   @Post('checkout')
-  @ApiOperation({ summary: 'Create Stripe checkout session' })
+  @ApiOperation({
+    summary: 'Create Stripe checkout session (Authenticated Customer Only)',
+  })
   @ApiBody({ type: CheckoutPlanDto })
   @ApiResponse({ status: 201, description: 'Checkout session created' })
-  async checkout(@Body() body: CheckoutPlanDto) {
-    return this.subscriptionsService.createCheckoutSession(body);
+  async checkout(@Req() req, @Body() body: CheckoutPlanDto) {
+    const userId = req.user.sub as any;
+    return this.subscriptionsService.createCheckoutSession(userId, body.planId);
   }
 
   // 🔹 Change Plan
-  @Auth()
-  @ApiBearerAuth()
-  @Post('change-plan')
-  @ApiOperation({ summary: 'Change user subscription plan' })
-  @ApiBody({ type: ChangePlanDto })
-  @ApiResponse({ status: 200, description: 'Plan changed successfully' })
-  changePlan(@Body() body: ChangePlanDto) {
-    return this.subscriptionsService.changePlan(body.userId, body.planId);
-  }
+  // @Auth()
+  // @ApiBearerAuth()
+  // @Post('change-plan')
+  // @ApiOperation({ summary: 'Change user subscription plan' })
+  // @ApiBody({ type: ChangePlanDto })
+  // @ApiResponse({ status: 200, description: 'Plan changed successfully' })
+  // changePlan(@Body() body: ChangePlanDto) {
+  //   return this.subscriptionsService.changePlan(body.userId, body.planId);
+  // }
 
   // 🔹 Stripe Webhook
   @Public()

@@ -77,12 +77,12 @@ import { EmailModule } from './modules/mail/mail.module';
 
     SeedModule,
     EmailModule,
+    RolesModule,
+    PaymentsModule,
     AuthModule,
     UsersModule,
-    RolesModule,
     PlansModule,
     SubscriptionsModule,
-    PaymentsModule,
     StripeModule,
   ],
 

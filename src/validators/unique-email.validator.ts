@@ -3,13 +3,15 @@ import {
   ValidatorConstraintInterface,
   ValidationArguments,
 } from 'class-validator';
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { UsersService } from 'src/modules/users/users.service';
 
 @ValidatorConstraint({ async: true })
 @Injectable()
 export class IsEmailUniqueConstraint implements ValidatorConstraintInterface {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    @Inject(forwardRef(() => UsersService)) private usersService: UsersService,
+  ) {}
 
   async validate(email: string, args: ValidationArguments) {
     const user = await this.usersService.findByEmail(email);

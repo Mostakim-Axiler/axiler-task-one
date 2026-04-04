@@ -7,15 +7,15 @@ import {
   IsArray,
   IsEnum,
   Min,
-  ValidateIf,
+  Max,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-// 🔹 Enum for interval
+// 🔹 Enum for Plan intervals
 export enum PlanInterval {
-  FREE = 'free',
-  MONTHLY = 'monthly',
-  YEARLY = 'yearly',
+  DAILY = 'day',
+  MONTHLY = 'month',
+  YEARLY = 'year',
 }
 
 // 🔹 Create Plan DTO
@@ -25,16 +25,15 @@ export class CreatePlanDto {
   @IsNotEmpty()
   readonly name: string;
 
-  @ApiPropertyOptional({
-    example: 9.99,
-    description: 'Required if interval is not FREE',
+  @ApiProperty({
+    example: 0, // can be 0
+    description: 'Price of the plan, can be 0 for FREE plans',
     minimum: 0,
   })
-  @ValidateIf((o) => o.interval !== PlanInterval.FREE)
   @IsNumber()
-  @IsNotEmpty()
   @Min(0)
-  readonly price?: number;
+  @IsNotEmpty()
+  readonly price: number;
 
   @ApiProperty({
     enum: PlanInterval,
@@ -44,30 +43,26 @@ export class CreatePlanDto {
   @IsNotEmpty()
   readonly interval: PlanInterval;
 
-  @ApiPropertyOptional({
-    example: 'price_1ABCxyz',
-    description: 'Stripe price ID',
+  @ApiProperty({
+    example: 1,
+    description:
+      'Level of the plan (0: Free, 1: Basic, 2: Premium, 3: Enterprise)',
   })
-  @IsString()
-  @IsOptional()
-  readonly stripePriceId?: string;
+  @IsNumber()
+  @Min(0)
+  @Max(3)
+  @IsNotEmpty()
+  readonly level: number;
 
-  @ApiPropertyOptional({
-    example: true,
-    description: 'Is plan active',
-  })
-  @IsBoolean()
-  @IsOptional()
-  readonly isActive?: boolean;
-
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: ['Unlimited projects', 'Priority support'],
     type: [String],
+    description: 'Features included in the plan',
   })
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
-  readonly features?: string[];
+  @IsNotEmpty()
+  readonly features: string[];
 }
 
 // 🔹 Update Plan DTO
@@ -79,15 +74,12 @@ export class UpdatePlanDto {
 
   @ApiPropertyOptional({
     example: 19.99,
-    description: 'Required if interval is provided and not FREE',
+    description: 'Price of the plan, can be 0',
     minimum: 0,
   })
-  @ValidateIf(
-    (o) => o.interval !== undefined && o.interval !== PlanInterval.FREE,
-  )
   @IsNumber()
-  @IsNotEmpty()
   @Min(0)
+  @IsOptional()
   readonly price?: number;
 
   @ApiPropertyOptional({
@@ -99,18 +91,15 @@ export class UpdatePlanDto {
   readonly interval?: PlanInterval;
 
   @ApiPropertyOptional({
-    example: 'price_1XYZabc',
+    example: 2,
+    description:
+      'Level of the plan (0: Free, 1: Basic, 2: Premium, 3: Enterprise)',
   })
-  @IsString()
+  @IsNumber()
+  @Min(0)
+  @Max(3)
   @IsOptional()
-  readonly stripePriceId?: string;
-
-  @ApiPropertyOptional({
-    example: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  readonly isActive?: boolean;
+  readonly level?: number;
 
   @ApiPropertyOptional({
     example: ['Advanced analytics', '24/7 support'],

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
   Subscription,
@@ -13,6 +13,10 @@ import { Payment, PaymentSchema } from 'src/database/schemas/payments.schema';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { Role, RoleSchema } from 'src/database/schemas/roles.schema';
+import Stripe from 'stripe';
+import { StripeModule } from '../stripe/stripe.module';
+import { PlansModule } from '../plans/plans.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
@@ -23,7 +27,10 @@ import { Role, RoleSchema } from 'src/database/schemas/roles.schema';
       { name: Plan.name, schema: PlanSchema },
       { name: Payment.name, schema: PaymentSchema },
     ]),
-    UsersModule,
+    forwardRef(() => StripeModule),
+    forwardRef(() => UsersModule),
+    forwardRef(() => PlansModule),
+    forwardRef(() => PaymentsModule),
     ConfigModule,
 
     JwtModule.registerAsync({
