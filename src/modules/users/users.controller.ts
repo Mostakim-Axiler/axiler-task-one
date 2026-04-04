@@ -63,7 +63,7 @@ export class UsersController {
   // 🔹 Toggle active status (Admin only)
   @Auth('admin')
   @ApiBearerAuth()
-  @Patch(':id/toggle-active')
+  @Patch(':id/active')
   @ApiOperation({ summary: 'Toggle user active status (Admin only)' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiBody({
