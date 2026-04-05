@@ -25,6 +25,9 @@ export class Plan {
   intervalCount: number;
 
   @Prop()
+  stripeProductId: string;
+
+  @Prop()
   stripePriceId: string;
 
   @Prop({ default: true })

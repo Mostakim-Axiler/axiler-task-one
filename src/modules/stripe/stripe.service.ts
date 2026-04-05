@@ -35,7 +35,9 @@ export class StripeService {
   }
 
   // ✅ CREATE STRIPE PRICE
-  async createPrice(plan: any): Promise<string> {
+  async createPrice(
+    plan: any,
+  ): Promise<{ productId: string; priceId: string }> {
     let product: Stripe.Product | null = null;
 
     try {
@@ -52,13 +54,20 @@ export class StripeService {
       const price = await this.stripe.prices.create({
         unit_amount: plan.price * 100,
         currency: 'usd',
-        recurring: { interval: plan.interval, interval_count: 1 },
+        recurring: {
+          interval: plan.interval,
+          interval_count: 1,
+        },
         product: product.id,
       });
 
-      return price.id;
+      // ✅ Return BOTH IDs
+      return {
+        productId: product.id,
+        priceId: price.id,
+      };
     } catch (err: any) {
-      // Rollback Stripe Product if created
+      // 🔥 Rollback Stripe Product if created
       if (product) {
         try {
           await this.stripe.products.del(product.id);
@@ -66,7 +75,70 @@ export class StripeService {
           console.error('Failed to rollback Stripe product', delErr);
         }
       }
+
       throw new InternalServerErrorException(err.message);
+    }
+  }
+
+  // ✅ UPDATE PRICE
+  async updatePrice(plan: any): Promise<string> {
+    let newPrice: Stripe.Price | null = null;
+
+    try {
+      if (!plan.stripeProductId) {
+        throw new BadRequestException('Missing Stripe product ID');
+      }
+      if (!plan.stripePriceId) {
+        throw new BadRequestException('Missing Stripe product ID');
+      }
+
+      // ✅ 1. Create NEW price
+      newPrice = await this.stripe.prices.create({
+        unit_amount: plan.price * 100,
+        currency: 'usd',
+        recurring: {
+          interval: plan.interval,
+          interval_count: 1,
+        },
+        product: plan.stripeProductId,
+      });
+
+      // ✅ 2. Deactivate OLD price (if exists)
+      if (plan.stripePriceId) {
+        await this.stripe.prices.update(plan.stripePriceId, {
+          active: false,
+        });
+      }
+
+      // ✅ 3. Return new price ID
+      return newPrice.id;
+    } catch (err: any) {
+      // 🔥 rollback newly created price if something fails
+      if (newPrice) {
+        try {
+          await this.stripe.prices.update(newPrice.id, {
+            active: false,
+          });
+        } catch (rollbackErr) {
+          console.error('Failed to rollback new price', rollbackErr);
+        }
+      }
+
+      throw new InternalServerErrorException(err.message);
+    }
+  }
+
+  // INACTIVE PRICE
+  async inactivePrice(plan: any): Promise<boolean> {
+    try {
+      await this.stripe.products.del(plan.stripeProductId);
+      await this.stripe.prices.update(plan.stripePriceId, {
+        active: false,
+      });
+      return true;
+    } catch (err: any) {
+      // throw new InternalServerErrorException(err.message);
+      return false;
     }
   }
 

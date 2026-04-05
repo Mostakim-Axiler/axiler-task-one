@@ -25,8 +25,9 @@ export class PlansService {
       const createdPlan = await this.planModel.create(data);
 
       try {
-        const stripePriceId = await this.stripeService.createPrice(createdPlan);
-        createdPlan.stripePriceId = stripePriceId;
+        const {productId, priceId} = await this.stripeService.createPrice(createdPlan);
+        createdPlan.stripeProductId = productId;
+        createdPlan.stripePriceId = priceId;
         await createdPlan.save();
       } catch (stripeErr: any) {
         await this.planModel.findByIdAndDelete(createdPlan._id);
@@ -81,61 +82,65 @@ export class PlansService {
   }
 
   // 🔹 UPDATE PLAN
-  async update(id: string, data: any): Promise<PlanDocument> {
-    const session = await this.planModel.db.startSession();
-    session.startTransaction();
+  async update(id: string, data: any): Promise<any> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid plan ID');
+    }
 
-    try {
-      if (!Types.ObjectId.isValid(id))
-        throw new BadRequestException('Invalid plan ID');
+    // 🔹 Get existing plan
+    const existingPlan = await this.planModel.findById(id);
+    if (!existingPlan) {
+      throw new NotFoundException('Plan not found');
+    }
 
-      // ✅ Check unique name
-      if (data.name) {
-        const existingPlan = await this.planModel
-          .findOne({
-            name: data.name.trim(),
-            _id: { $ne: id },
-          })
-          .session(session);
+    // 🔹 Clone old data for rollback
+    const previousData = existingPlan.toObject();
 
-        if (existingPlan) {
-          throw new BadRequestException('Plan name already in use');
-        }
-        data.name = data.name.trim();
-      }
-
-      const updated = await this.planModel.findByIdAndUpdate(id, data, {
-        new: true,
-        session,
+    // 🔹 Unique name check
+    if (data.name) {
+      const duplicate = await this.planModel.findOne({
+        name: data.name.trim(),
+        _id: { $ne: id },
       });
-      if (!updated) throw new NotFoundException('Plan not found');
 
-      // If Stripe price changed (price or interval), recreate Stripe price
-      if (data.price || data.interval) {
-        try {
-          await this.stripeService.createPrice(updated);
-        } catch (stripeErr: any) {
-          throw new InternalServerErrorException(
-            `Stripe price update failed: ${stripeErr.message}`,
-          );
-        }
+      if (duplicate) {
+        throw new BadRequestException('Plan name already in use');
       }
 
-      await session.commitTransaction();
-      return updated;
+      data.name = data.name.trim();
+    }
+
+    // 🔹 Step 1: Update MongoDB FIRST
+    let updatedPlan: any;
+    try {
+      updatedPlan = await this.planModel.findByIdAndUpdate(id, data, {
+        new: true,
+        runValidators: true,
+        returnDocument: 'after'
+      });
     } catch (err: any) {
-      await session.abortTransaction();
-      if (
-        err instanceof BadRequestException ||
-        err instanceof NotFoundException
-      )
-        throw err;
       throw new InternalServerErrorException(err.message);
-    } finally {
-      session.endSession();
+    }
+
+    // 🔹 Step 2: Call Stripe
+    try {
+      if (data.price || data.interval) {
+        const stripePrice = await this.stripeService.updatePrice(updatedPlan);
+
+        // 🔹 Save stripe price
+        updatedPlan.stripePriceId = stripePrice;
+        await updatedPlan.save();
+      }
+
+      return updatedPlan;
+    } catch (err: any) {
+      // ❌ Stripe failed → rollback MongoDB
+      await this.planModel.findByIdAndUpdate(id, previousData);
+      throw new InternalServerErrorException(
+        `Stripe failed, rollback applied: ${err.message}`,
+      );
     }
   }
-
   // 🔹 TOGGLE ACTIVE
   async setActive(id: string, isActive: boolean): Promise<PlanDocument> {
     try {
@@ -153,23 +158,40 @@ export class PlansService {
 
   // 🔹 DELETE PLAN
   async delete(id: string): Promise<{ message: string }> {
-    const session = await this.planModel.db.startSession();
-    session.startTransaction();
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid plan ID');
+    }
+
+    const plan = await this.planModel.findById(id);
+    if (!plan) {
+      throw new NotFoundException('Plan not found');
+    }
 
     try {
-      const deleted = await this.planModel.findByIdAndDelete(id, { session });
-      if (!deleted) throw new NotFoundException('Plan not found');
+      // 🔹 Step 1: Deactivate Stripe price (if exists)
+      if (plan.stripePriceId) {
+        const stripeDeactivated = await this.stripeService.inactivePrice(plan);
 
-      // TODO: Optionally, you could also delete the corresponding Stripe product/price if needed
+        if (!stripeDeactivated) {
+          throw new InternalServerErrorException(
+            'Failed to deactivate Stripe price',
+          );
+        }
+      }
 
-      await session.commitTransaction();
+      // 🔹 Step 2: Delete from MongoDB
+      await this.planModel.findByIdAndDelete(id);
+
       return { message: 'Plan deleted successfully' };
     } catch (err: any) {
-      await session.abortTransaction();
-      if (err instanceof NotFoundException) throw err;
+      if (
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException
+      ) {
+        throw err;
+      }
+
       throw new InternalServerErrorException(err.message);
-    } finally {
-      session.endSession();
     }
   }
 }
