@@ -113,22 +113,18 @@ export class UsersService {
 
   // 🔹 GET USER SUBSCRIPTION
   async getUserSubscription(userId: string) {
-    try {
-      const subscription = await this.subscriptionModel
-        .findOne({ user: userId })
-        .populate({
-          path: 'plan',
-          select: 'name price interval',
-        });
+    const subscription = await this.subscriptionModel
+      .findOne({ user: userId })
+      .populate({
+        path: 'plan',
+        select: 'name price interval',
+      });
 
-      if (!subscription) {
-        throw new NotFoundException('Subscription not found');
-      }
-
-      return subscription;
-    } catch (error: any) {
-      throw new InternalServerErrorException(error.message);
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
     }
+
+    return subscription;
   }
 
   // 🔹 SET ACTIVE
