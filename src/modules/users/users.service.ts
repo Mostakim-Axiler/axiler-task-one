@@ -138,13 +138,21 @@ export class UsersService {
         throw new BadRequestException('Invalid user ID');
       }
 
-      const user = await this.userModel
-        .findByIdAndUpdate(id, { isActive }, { new: true })
-        .populate('role');
+      // 1️⃣ Get user first
+      const user = await this.userModel.findById(id).populate('role');
 
       if (!user) {
         throw new NotFoundException('User not found');
       }
+      const role = user.role as any;
+      // 2️⃣ Prevent admin toggle
+      if (role?.name === 'admin') {
+        throw new BadRequestException('Admin status cannot be changed');
+      }
+
+      // 3️⃣ Update only if allowed
+      user.isActive = isActive;
+      await user.save();
 
       return formatUser(user);
     } catch (error: any) {

@@ -25,7 +25,8 @@ export class PlansService {
       const createdPlan = await this.planModel.create(data);
 
       try {
-        const {productId, priceId} = await this.stripeService.createPrice(createdPlan);
+        const { productId, priceId } =
+          await this.stripeService.createPrice(createdPlan);
         createdPlan.stripeProductId = productId;
         createdPlan.stripePriceId = priceId;
         await createdPlan.save();
@@ -116,7 +117,7 @@ export class PlansService {
       updatedPlan = await this.planModel.findByIdAndUpdate(id, data, {
         new: true,
         runValidators: true,
-        returnDocument: 'after'
+        returnDocument: 'after',
       });
     } catch (err: any) {
       throw new InternalServerErrorException(err.message);
