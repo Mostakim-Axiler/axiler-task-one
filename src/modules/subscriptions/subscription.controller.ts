@@ -65,15 +65,34 @@ export class SubscriptionsController {
   }
 
   // 🔹 Change Plan
-  // @Auth()
-  // @ApiBearerAuth()
-  // @Post('change-plan')
-  // @ApiOperation({ summary: 'Change user subscription plan' })
-  // @ApiBody({ type: ChangePlanDto })
-  // @ApiResponse({ status: 200, description: 'Plan changed successfully' })
-  // changePlan(@Body() body: ChangePlanDto) {
-  //   return this.subscriptionsService.changePlan(body.userId, body.planId);
-  // }
+  @Auth('customer')
+  @ApiBearerAuth()
+  @Post('change-plan')
+  @ApiOperation({
+    summary: 'Change user subscription plan (Authenticated Customer Only)',
+  })
+  @ApiBody({ type: ChangePlanDto })
+  @ApiResponse({ status: 200, description: 'Plan changed successfully' })
+  changePlan(@Req() req, @Body() body: ChangePlanDto) {
+    const userId = req.user.sub as any;
+    return this.subscriptionsService.changeSubscription(userId, body.planId);
+  }
+
+  // 🔹 Cancel Subscription
+  @Auth('customer')
+  @ApiBearerAuth()
+  @Post('cancel')
+  @ApiOperation({
+    summary: 'Cancel user subscription (Authenticated Customer Only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription canceled successfully',
+  })
+  cancelSubscription(@Req() req) {
+    const userId = req.user.sub as any;
+    return this.subscriptionsService.cancelSubscription(userId);
+  }
 
   // 🔹 Stripe Webhook
   @Public()

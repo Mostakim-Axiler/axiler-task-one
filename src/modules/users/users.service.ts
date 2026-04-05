@@ -117,7 +117,7 @@ export class UsersService {
       .findOne({ user: userId })
       .populate({
         path: 'plan',
-        select: 'name price interval',
+        select: 'name price interval level',
       });
 
     if (!subscription) {

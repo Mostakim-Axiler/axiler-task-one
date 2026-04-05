@@ -44,6 +44,51 @@ export class SubscriptionsService {
     return { url: session.url };
   }
 
+  // 🔥 CHANGE SUBSCRIPTION
+  async changeSubscription(userId: string, newPlanId: string) {
+    const subscription = await this.subscriptionModel.findOne({ user: userId });
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
+    }
+
+    const newPlan = await this.planModel.findById(newPlanId);
+    if (!newPlan) {
+      throw new NotFoundException('New plan not found');
+    }
+
+    try {
+      await this.stripeService.changePlan(userId, newPlanId);
+      subscription.plan = newPlan._id;
+      await subscription.save();
+    } catch (err: any) {
+      throw new BadRequestException(
+        'Failed to change subscription: ' + err.message,
+      );
+    }
+
+    return { message: 'Subscription updated successfully' };
+  }
+
+  // 🔥 CANCEL SUBSCRIPTION
+  async cancelSubscription(userId: string) {
+    const subscription = await this.subscriptionModel.findOne({ user: userId });
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
+    }
+
+    try {
+      await this.stripeService.cancel(userId);
+      subscription.status = 'canceled';
+      await subscription.save();
+    } catch (err: any) {
+      throw new BadRequestException(
+        'Failed to cancel subscription: ' + err.message,
+      );
+    }
+
+    return { message: 'Subscription canceled successfully' };
+  }
+
   // 🔥 WEBHOOK
   async handleWebhook(req: any, signature: string) {
     return await this.stripeService.handleWebhook(req, signature);
